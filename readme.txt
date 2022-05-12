@@ -11,3 +11,6 @@ SQL Queries will be logged in file queries.txt.
 
 Folder test_run:
 	Example scripts for parallel workload testing using sysbench.
+
+Requirements: 
+	sudo apt-get update && sudo apt-get install build-essential
