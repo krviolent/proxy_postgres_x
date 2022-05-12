@@ -1,0 +1,3 @@
+/home/rs/proxy_postgres_x/build/CMakeFiles/rebuild_cache.dir
+/home/rs/proxy_postgres_x/build/CMakeFiles/edit_cache.dir
+/home/rs/proxy_postgres_x/build/CMakeFiles/proxy_postgres_x.dir

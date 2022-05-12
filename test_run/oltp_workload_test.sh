@@ -1,0 +1,1 @@
+sysbench --db-driver=pgsql --report-interval=2 --oltp-table-size=1000 --oltp-tables-count=100 --threads=30 --time=300 --pgsql-host=localhost --pgsql-port=8888 --pgsql-user=user1 --pgsql-password=user1pass --pgsql-db=db1 /usr/share/sysbench/tests/include/oltp_legacy/oltp.lua run

@@ -1,0 +1,1 @@
+/usr/bin/c++   -lstdc++ -O2   CMakeFiles/proxy_postgres_x.dir/src/main.cpp.o  -o proxy_postgres_x 

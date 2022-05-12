@@ -1,0 +1,1 @@
+sysbench /usr/share/sysbench/tests/include/oltp_legacy/parallel_prepare.lua --db-driver=pgsql --oltp-table-size=1000 --oltp-tables-count=100 --threads=50 --pgsql-host=localhost --pgsql-port=8888 --pgsql-user=user1 --pgsql-password=user1pass --pgsql-db=db1 run
