@@ -1,5 +1,7 @@
 Make:
-	bash make
+	cd build ..
+	cmake ..
+	cmake --build .
 
 Usage: sudo ./proxy_postgres_x [debug_flag] [SERVER_PORT]
 	Debug flag = 0 (Off) or 1 (On),
