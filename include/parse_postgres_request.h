@@ -779,15 +779,15 @@ string check_first_byte(char* buffer, int message_len) {
 	// found message type - parse response
 	ret = message_name;
 	if (message_len > 1) {
-		if (message_name.compare(0, 5, "Query") == 0){
+		//if (message_name.compare(0, 5, "Query") == 0){
 			parse_message(message_name, buffer);
 			write_query_to_file(message_name);
-		}
+		//}
 	}
 	// not need to parse, no data in message
 	else {
-			if (message_name.compare(0, 5, "Query") == 0)
-				write_query_to_file(message_name);
+		//if (message_name.compare(0, 5, "Query") == 0)
+		write_query_to_file(message_name);
 	}
 	if (ret == "Authentication"){
 		return message_name.substr(0, message_name.find_first_of(":"));
