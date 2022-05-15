@@ -417,10 +417,10 @@ void parse_CancelRequest(string &parsed_info, char* buffer, int offset){
 }
 
 void parse_auth_message(string &parsed_info, char *buffer) {
-	// byte1 - 'R'
-	// Int32 - len
-	// Int32 - auth message_code
-	// so on
+	// 0, byte1 - 'R'
+	// 1, Int32 - len
+	// 5, Int32 - auth message_code
+	// 9, so on
 	parsed_info = "";
 	int message_len = get_int(buffer, 1);
 	int message_code = get_int(buffer, 5);
@@ -444,9 +444,17 @@ void parse_auth_message(string &parsed_info, char *buffer) {
 	} else {
 		parsed_info = parsed_info + ": {";
 		if (result->first == "AuthenticationMD5Password"){
-			char str[16];
+			char str[32];
+			printf("here");
 			memset(str, 0, 16);
-			sprintf(str, "\"Salt\": \"%x\"", (unsigned int)buffer[10]);
+			int x = 0;
+			try {
+				x = get_int(buffer, 9);
+			}catch (const exception& e){
+				printf("[get_int] %s", e.what());			
+			}
+			cout << "Salt = " << x << std::endl;
+			sprintf(str, "\"Salt\": \"%x\"", (unsigned int)x);
 			parsed_info.append(str);
 			parsed_info = parsed_info + "}";
 			return;

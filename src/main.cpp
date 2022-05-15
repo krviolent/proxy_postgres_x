@@ -14,7 +14,26 @@ struct sess_t {
 	int sock_s;
 } sess;
 
-struct sess_t *s = (sess_t *)malloc(MAX_SESSIONS*sizeof(sess_t));
+//struct sess_t *s = (sess_t *)malloc(MAX_SESSIONS*sizeof(sess_t));
+vector<sess_t>s;
+
+int find_client_sock(int sock)
+{	
+	for (size_t i = 0; i < s.size(); ++i){
+		if (s[i].sock_c == sock){
+			cout << "found sock =" << s[i].sock_c << std::endl;
+			return i;	
+		}
+	}
+}
+
+int find_server_sock(int sock)
+{	
+	for (size_t i = 0; i < s.size(); ++i){
+		if (s[i].sock_s == sock)
+			return i;
+	}
+}
 
 // temp buf for server packets
 int buffer_len = -1;
@@ -257,10 +276,16 @@ int handle_accept_event(struct pollfd * fds, int sock, int &poll_size) {
 		/* pollfd structure                                  */
 		if (debug_flag == 1)
 			printf("  New incoming connection - %d\n", new_sd);
-		s[poll_size].sock_c = new_sd;
+		//s[poll_size].sock_c = new_sd;
+		s.push_back(sess_t());
+		s[conn_count].sock_c = new_sd;
+		
+		conn_count++;
+		
 		fds[poll_size].fd = new_sd;
 		fds[poll_size].events = POLLIN; //POLLIN, POLLOUT
 		poll_size++;
+		// increase number of sessions
 		connections[new_sd] = EPOLL_PROXY_CLIENT;
 		last_client = new_sd;
 		/* Loop back up and accept another incoming          */
@@ -274,6 +299,7 @@ int handle_poolin_event(struct pollfd *fds, int &poll_size, int i) {
 		char   buffer[BUF_SIZE];
 		bzero(buffer, BUF_SIZE);
 	    int rc = 0, conn_state = FALSE, nread = 0;
+		int index = 0, terminate = 0;
 		auto it = connections.find(fds[i].fd);
         do {
           /* Receive data on this connection until the         */
@@ -300,9 +326,15 @@ int handle_poolin_event(struct pollfd *fds, int &poll_size, int i) {
 				if (it->second == EPOLL_PROXY_CLIENT){
 					if (debug_flag == 1)
 						printf("this is client\n\n");
+						// check index of sock_c
+						index = find_client_sock(fds[i].fd);
+						cout << "index = " << index << std::endl;
 				} else if(it->second == EPOLL_PROXY_SERVER){
 					if (debug_flag == 1)
 						printf("this is server\n");
+					// check index of sock_s
+					index = find_server_sock(fds[i].fd);
+					cout << "index = " << index << std::endl;
 				}
 				if (debug_flag == 1)
 					raw_print(buffer, rc);
@@ -319,9 +351,17 @@ int handle_poolin_event(struct pollfd *fds, int &poll_size, int i) {
 					return conn_state;
 				}
 				if (message_name_map[commands_count] == "Terminate") {
-						//conn_state = TRUE;
+						//conn_state = TRUE;	
 						if (debug_flag == 1)
 							printf("Got terminate message\n");
+						conn_state = TRUE;
+						disconnect_sock(fds, i, conn_state);
+						delete_connection(conn_state, fds, poll_size);
+						connections.erase(s[index].sock_s);
+						connections.erase(s[index].sock_c);
+						terminate = 1;
+						s[index].sock_c = 0;
+						conn_count--;
 						//return conn_state;
 				} else {
 					commands_count++;
@@ -339,33 +379,45 @@ int handle_poolin_event(struct pollfd *fds, int &poll_size, int i) {
 			}
 			// send message received from Server to Client
 			if (debug_flag == 1)
-				printf("s[%d].sock_s = %d, s[%d].sock_c=%d\n", i, s[i].sock_s, i, s[i].sock_c);
-			if (it->second == EPOLL_PROXY_SERVER && s[i].sock_s > 0) 
+				printf("s[%d].sock_s = %d, s[%d].sock_c=%d\n", index, s[index].sock_s, index, s[index].sock_c);
+			if (it->second == EPOLL_PROXY_SERVER && s[index].sock_c > 0) 
 			{
 				if (debug_flag == 1)
-					printf("sending server answer to client [%d]= %d, last client = %d\n", i, s[i].sock_c, last_client);
-				send_answer_to_client(s[i].sock_c, buffer, rc);
+					printf("sending server answer to client [%d]= %d, last client = %d\n", i, s[index].sock_c, last_client);
+				send_answer_to_client(s[index].sock_c, buffer, rc);
 				return conn_state;
-			} else if (it->second == EPOLL_PROXY_CLIENT && s[i].sock_s > 0){
+			} else if (it->second == EPOLL_PROXY_CLIENT && s[index].sock_s > 0){
 				// connection to server already established
 				if (debug_flag == 1)
 					printf("This is client, try to send buf to server\n");
-				rc = send(s[i].sock_s, buffer, len, MSG_NOSIGNAL);
+				rc = send(s[index].sock_s, buffer, len, MSG_NOSIGNAL);
 				if (rc < 0) {
 					perror("[server] send() failed");
 					server_sock = -1;
 					conn_state = TRUE;
-					int conn_lost = disconnect_sock(fds, poll_size, conn_state);
-					delete_connection(conn_lost, fds, poll_size);
 					break;
 				} else if (rc >0) {
 					if (debug_flag == 1)
 						printf(" sent %d bytes to server\n", rc);
+					if (terminate == 1) {
+						// find server fd of server socket in fds[]
+						for (int i=0; i <poll_size; i++) {
+							if (fds[i].fd == s[index].sock_s) {
+								cout << "Found server sock" << std::endl;
+								s[index].sock_s = 0;
+								index = i;
+								break;
+								}
+						}
+						disconnect_sock(fds, index, conn_state);
+						delete_connection(conn_state, fds, poll_size);
+						conn_state = FALSE;
+					}
 					return conn_state;
 				}
 			}
 			// connect to server in new connection
-			if (s[i].sock_s == 0){
+			if (s[index].sock_s == 0){
 				/* need to send packet in buffer to client or server*/
 				server_sock = connect_socket (LOCALHOST, SERVER_PORT);
 				// add sock to connection
@@ -377,10 +429,13 @@ int handle_poolin_event(struct pollfd *fds, int &poll_size, int i) {
 				if (debug_flag == 1)
 					printf("Connected to server, fd = %d\n", server_sock);
 				// try to trick
-				s[poll_size].sock_s = server_sock;
-				s[i].sock_s = server_sock;
+				
+				//s[poll_size].sock_s = server_sock;
+				//s[i].sock_s = server_sock;
 
-				s[poll_size].sock_c = fds[i].fd;
+				s[index].sock_s = server_sock;
+				
+				//s[poll_size].sock_c = fds[i].fd;
 				fds[poll_size].fd = server_sock;
 				fds[poll_size].events = POLLIN; //POLLIN, POLLOUT
 				poll_size++;
@@ -499,7 +554,8 @@ int main (int argc, char *argv[])
 			if (fds[i].fd == listen_sock) {
 				// accept client connection PROXY_CLIENT
 				conn_state = handle_accept_event(fds, listen_sock, nfds);
-				s[nfds].sock_c = fds[nfds].fd;
+				//s.push_back(sess_t());
+				//s[nfds].sock_c = fds[nfds].fd;
 				continue;
 			}
 			/* This is not the listening socket, therefore an        */

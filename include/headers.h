@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 #define bzero(ptr, size) memset(ptr, 0, size)
 using namespace std;
@@ -35,3 +36,4 @@ using namespace std;
 #define MAX_HOST_LEN 100
 int debug_flag = 0;
 int SERVER_PORT= 5432;
+int conn_count = 0;
