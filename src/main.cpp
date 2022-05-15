@@ -451,7 +451,7 @@ int main (int argc, char *argv[])
 	else{
 		printf("Debug mode OFF\n");
 	}
-	printf("Postgres server port = %d\n", number);
+	printf("Postgres server port = %d\n", SERVER_PORT);
 	// check LOG file
 	check_if_file_exist("query.txt");
 	listen_sock =  create_socket(NULL, PROXY_PORT);
