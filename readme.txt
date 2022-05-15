@@ -1,3 +1,5 @@
+Info: 
+	Proxy-server listens client on TCP-port 8888.
 Make:
 	bash make
 
